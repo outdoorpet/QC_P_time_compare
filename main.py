@@ -26,7 +26,7 @@ from waveforms_db import Waveforms
 from collections import defaultdict
 
 # load in Qt Designer UI files
-qc_events_ui = "qc_events.ui"
+qc_events_ui = "qc_picker.ui"
 select_stacomp_dialog_ui = "select_stacomp_dialog.ui"
 
 Ui_MainWindow, QtBaseClass = uic.loadUiType(qc_events_ui)
