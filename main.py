@@ -18,10 +18,167 @@ import re
 residual_set_limit_ui = "residual_set_limit.ui"
 qc_p_time_compare_ui = "qc_p_time_compare.ui"
 select_stacomp_dialog_ui = "select_stacomp_dialog.ui"
+select_comp_dialog_ui = "select_comp_dialog.ui"
 
 Ui_MainWindow, QtBaseClass = uic.loadUiType(qc_p_time_compare_ui)
 Ui_SelectDialog, QtBaseClass = uic.loadUiType(select_stacomp_dialog_ui)
+Ui_ChanSelectDialog, QtBaseClass = uic.loadUiType(select_comp_dialog_ui)
 Ui_ResDialog, QtBaseClass = uic.loadUiType(residual_set_limit_ui)
+
+class selectionDialog(QtGui.QDialog):
+    '''
+    Select all functionality is modified from Brendan Abel & dbc from their
+    stackoverflow communication Feb 24th 2016:
+    http://stackoverflow.com/questions/35611199/creating-a-toggling-check-all-checkbox-for-a-listview
+    '''
+
+    def __init__(self, parent=None, sta_list=None, chan_list=None):
+        QtGui.QDialog.__init__(self, parent)
+        self.selui = Ui_SelectDialog()
+        self.selui.setupUi(self)
+
+        # Set all check box to checked
+        # self.selui.check_all.setChecked(True)
+        self.selui.check_all.clicked.connect(self.selectAllCheckChanged)
+
+        # add stations to station select items
+        self.sta_model = QtGui.QStandardItemModel(self.selui.StaListView)
+
+        self.sta_list = sta_list
+        for sta in self.sta_list:
+            item = QtGui.QStandardItem(sta)
+            item.setCheckable(True)
+
+            self.sta_model.appendRow(item)
+
+        self.selui.StaListView.setModel(self.sta_model)
+        # connect to method to update stae of select all checkbox
+        self.selui.StaListView.clicked.connect(self.listviewCheckChanged)
+
+        # add channels to channel select items
+        self.chan_model = QtGui.QStandardItemModel(self.selui.ChanListView)
+
+        self.chan_list = chan_list
+        for chan in self.chan_list:
+            item = QtGui.QStandardItem(chan)
+            item.setCheckable(True)
+
+            self.chan_model.appendRow(item)
+
+        self.selui.ChanListView.setModel(self.chan_model)
+
+    def selectAllCheckChanged(self):
+        ''' updates the listview based on select all checkbox '''
+        sta_model = self.selui.StaListView.model()
+        for index in range(sta_model.rowCount()):
+            item = sta_model.item(index)
+            if item.isCheckable():
+                if self.selui.check_all.isChecked():
+                    item.setCheckState(QtCore.Qt.Checked)
+                else:
+                    item.setCheckState(QtCore.Qt.Unchecked)
+
+    def listviewCheckChanged(self):
+        ''' updates the select all checkbox based on the listview '''
+        sta_model = self.selui.StaListView.model()
+        items = [sta_model.item(index) for index in range(sta_model.rowCount())]
+
+        if all(item.checkState() == QtCore.Qt.Checked for item in items):
+            self.selui.check_all.setTristate(False)
+            self.selui.check_all.setCheckState(QtCore.Qt.Checked)
+        elif any(item.checkState() == QtCore.Qt.Checked for item in items):
+            self.selui.check_all.setTristate(True)
+            self.selui.check_all.setCheckState(QtCore.Qt.PartiallyChecked)
+        else:
+            self.selui.check_all.setTristate(False)
+            self.selui.check_all.setCheckState(QtCore.Qt.Unchecked)
+
+    def getSelected(self):
+        select_stations = []
+        select_channels = []
+        i = 0
+        while self.sta_model.item(i):
+            if self.sta_model.item(i).checkState():
+                select_stations.append(str(self.sta_model.item(i).text()))
+            i += 1
+        i = 0
+        while self.chan_model.item(i):
+            if self.chan_model.item(i).checkState():
+                select_channels.append(str(self.chan_model.item(i).text()))
+            i += 1
+
+        # Return Selected stations and selected channels
+        return (select_stations, select_channels)
+
+
+class chanSelectionDialog(QtGui.QDialog):
+    '''
+    Select all functionality is modified from Brendan Abel & dbc from their
+    stackoverflow communication Feb 24th 2016:
+    http://stackoverflow.com/questions/35611199/creating-a-toggling-check-all-checkbox-for-a-listview
+    '''
+
+    def __init__(self, parent=None, chan_list=None):
+        QtGui.QDialog.__init__(self, parent)
+        self.selui = Ui_ChanSelectDialog()
+        self.selui.setupUi(self)
+
+        # Set all check box to checked
+        # self.selui.check_all.setChecked(True)
+        self.selui.check_all.clicked.connect(self.selectAllCheckChanged)
+
+        # add channels to channel select items
+        self.chan_model = QtGui.QStandardItemModel(self.selui.ChanListView)
+
+        self.chan_list = chan_list
+        for chan in self.chan_list:
+            item = QtGui.QStandardItem(chan)
+            item.setCheckable(True)
+
+            self.chan_model.appendRow(item)
+
+        self.selui.ChanListView.setModel(self.chan_model)
+
+        self.selui.ChanListView.setModel(self.chan_model)
+        # connect to method to update state of select all checkbox
+        self.selui.ChanListView.clicked.connect(self.listviewCheckChanged)
+
+    def selectAllCheckChanged(self):
+        ''' updates the listview based on select all checkbox '''
+        chan_model = self.selui.ChanListView.model()
+        for index in range(chan_model.rowCount()):
+            item = chan_model.item(index)
+            if item.isCheckable():
+                if self.selui.check_all.isChecked():
+                    item.setCheckState(QtCore.Qt.Checked)
+                else:
+                    item.setCheckState(QtCore.Qt.Unchecked)
+
+    def listviewCheckChanged(self):
+        ''' updates the select all checkbox based on the listview '''
+        chan_model = self.selui.ChanListView.model()
+        items = [chan_model.item(index) for index in range(chan_model.rowCount())]
+
+        if all(item.checkState() == QtCore.Qt.Checked for item in items):
+            self.selui.check_all.setTristate(False)
+            self.selui.check_all.setCheckState(QtCore.Qt.Checked)
+        elif any(item.checkState() == QtCore.Qt.Checked for item in items):
+            self.selui.check_all.setTristate(True)
+            self.selui.check_all.setCheckState(QtCore.Qt.PartiallyChecked)
+        else:
+            self.selui.check_all.setTristate(False)
+            self.selui.check_all.setCheckState(QtCore.Qt.Unchecked)
+
+    def getSelected(self):
+        select_channels = []
+        i = 0
+        while self.chan_model.item(i):
+            if self.chan_model.item(i).checkState():
+                select_channels.append(str(self.chan_model.item(i).text()))
+            i += 1
+
+        # Return Selected stations and selected channels
+        return select_channels
 
 
 class PandasModel(QtCore.QAbstractTableModel):
@@ -256,19 +413,25 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
         except AttributeError:
             pass
 
-        # attempt to disable all events except for current event if the waveform plot tab is focus
-        # try:
-        print(self.main_tabWidget.currentIndex)
-        if self.main_tabWidget.currentIndex == 1:
-            # disable all events in sort option that are not the current event
-            for action in self.sort_menu:
-                print(action)
-                for sub_action in action:
-                    print(sub_action)
+        try:
+            # attempt to disable all events except for current event if the waveform plot tab is focus
+            if self.main_tabWidget.currentIndex() == 1:
+                # disable all events in sort option that are not the current event
+                for event, action in self.sort_action_list:
+                    try:
 
-            print(self.current_waveform_event)
-        # except AttributeError:
-        #     pass
+                        if not event == self.current_waveform_event:
+                            action.setEnabled(False)
+
+                    except AttributeError:
+                        # there is no current event
+                        pass
+            else:
+                for event, action in self.sort_action_list:
+                    action.setEnabled(True)
+        except AttributeError:
+            # the waveform has not been plotted
+            pass
 
     def sort_method_selected(self, sort_pushButton, value, prev_view):
         # Method to plot information on the scatter plot and to provide sort functionality
@@ -326,7 +489,6 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
         self.update_waveform_plot()
         self.update_graph()
 
-
     def plot_single_stn_selected(self, plt_single_pushButton, stn):
 
         # get events just for the selected stn
@@ -383,6 +545,46 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
         # call the sort method selected method to update teh waveform plot
         self.sort_method_selected(self.sort_drop_down_button, ('no_sort', 'no_sort'), False)
 
+    def waveform_plot_interact(self, plot_args):
+        # Method to catch when waveform plot is interacted with and will return the
+        # interacted with plot (i.e. station) and will also resize the Arrival time vertical lines
+
+        temp_st = self.waveform_st.copy()
+
+        plot = plot_args[0]
+        tr_index = plot_args[1]
+
+        p_line = self._state["p_lines"][tr_index]
+        p_as_line = self._state["p_as_lines"][tr_index]
+        p_text = self._state["p_text"][tr_index]
+        p_as_text = self._state["p_as_text"][tr_index]
+
+        if not (p_line == None or p_as_line == None):
+            # get the corresponding trace
+            tr = temp_st[tr_index]
+
+            axY = plot.getAxis('left')
+
+            p_as_line.setData(np.array([tr.stats.p_as_arr, tr.stats.p_as_arr]),
+                                   np.array([axY.range[0] + 0.05 * (axY.range[1] - axY.range[0]),
+                                             axY.range[1] - 0.05 * (axY.range[1] - axY.range[0])]),
+                                   pen=pg.mkPen({'color': '#ff8000', 'width': 1}))
+            p_line.setData(np.array([tr.stats.p_arr, tr.stats.p_arr]),
+                                np.array([axY.range[0] + 0.05 * (axY.range[1] - axY.range[0]),
+                                          axY.range[1] - 0.05 * (axY.range[1] - axY.range[0])]),
+                                pen=pg.mkPen({'color': '#40ff00', 'width': 1}))
+
+            p_as_text.setPos(tr.stats.p_as_arr, axY.range[0] + 0.1 * (axY.range[1] - axY.range[0]))
+            p_text.setPos(tr.stats.p_arr, axY.range[0] + 0.1 * (axY.range[1] - axY.range[0]))
+
+    def dispMousePos(self, pos):
+        # Display current mouse coords if over the scatter plot area as a tooltip
+        try:
+            x_coord = UTCDateTime(self.plot.vb.mapSceneToView(pos).toPoint().x()).ctime()
+            self.time_tool = self.plot.setToolTip(x_coord)
+        except:
+            pass
+
     def update_waveform_plot(self):
         # updates the waveform plot with the sort method selected
         try:
@@ -395,8 +597,9 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
         print(temp_st)
 
         self.waveform_graph.clear()
+        # self.waveform_graph.set
 
-        self.waveform_graph.setMinimumPlotHeight(200)
+        # self.waveform_graph.setMinimumPlotHeight(20)
 
         # Get the filter settings.
         filter_settings = {}
@@ -419,67 +622,73 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
 
         self._state["waveform_plots"] = []
         self._state["station_id"] = []
+        self._state["p_lines"] = []
+        self._state["p_as_lines"] = []
+        self._state["p_text"] = []
+        self._state["p_as_text"] = []
 
         for _i, tr in enumerate(temp_st):
             #get picks dataframe line
-            select_tr_pick = self.picks_df.loc[(self.picks_df['sta'] == tr.stats.station) &
-                                               (self.picks_df['pick_event_id'] == tr.stats.event_id)]
+            # select_tr_pick = self.picks_df.loc[(self.picks_df['sta'] == tr.stats.station) &
+            #                                    (self.picks_df['pick_event_id'] == tr.stats.event_id)]
 
-            plot = self.waveform_graph.addPlot(
-                _i, 0, title=tr.id,
+            self.plot = self.waveform_graph.addPlot(
+                _i, 0, labels={'left': tr.id},
                 axisItems={'bottom': DateAxisItem(orientation='bottom',
                                                   utcOffset=0)})
-            plot.show()
-            self._state["waveform_plots"].append(plot)
+            self.plot.show()
+            self._state["waveform_plots"].append(self.plot)
             self._state["station_id"].append(tr.stats.network + '.' +
                                              tr.stats.station + '.' +
                                              tr.stats.location + '.' +
                                              tr.stats.channel)
 
+            # Re-establish previous map_view_station if it exists
+            # if self.waveform_saved_state:
+            #     self.plot.getViewBox().setState(self.waveform_saved_state)
+
             tr_min = tr.data.min()
             tr_max = tr.data.max()
 
-            plot.plot(tr.times() + tr.stats.starttime.timestamp, tr.data)
+            self.plot.plot(tr.times() + tr.stats.starttime.timestamp, tr.data)
             starttimes.append(tr.stats.starttime)
             endtimes.append(tr.stats.endtime)
             min_values.append(tr_min)
             max_values.append(tr_max)
 
-            try:
-                #both in UTC Timestamp format (float)
-                picked_p_time = select_tr_pick['P_as_pick_time_UTC'].values[0]
-                calc_p_time = select_tr_pick['P_pick_time_UTC'].values[0]
 
-            except IndexError:
-                #no picks for station for event
-                pass
+            # When Mouse is moved over plot print the data coordinates
+            self.plot.scene().sigMouseMoved.connect(self.dispMousePos)
+
+            if tr.stats.p_arr == 0 or tr.stats.p_as_arr == 0:
+                #no picks for station and earthquake
+                p_as_line = None
+                p_line = None
+
+                p_as_text = None
+                p_text = None
 
             else:
+
+                # plot vertical lines for P theroetical and P-picked arrival
                 p_as_line = pg.PlotCurveItem()
                 p_line = pg.PlotCurveItem()
 
-                plot.addItem(p_as_line)
-                plot.addItem(p_line)
-
-                p_as_line.setData(np.array([picked_p_time, picked_p_time]),
-                                  np.array([tr_min - 0.5 * (tr_max-tr_min), tr_max + 0.5 * (tr_max-tr_min)]),
-                                  pen=pg.mkPen({'color': '#ff8000', 'width': 1}))
-                p_line.setData(np.array([calc_p_time, calc_p_time]),
-                                  np.array([tr_min - 0.5 * (tr_max - tr_min), tr_max + 0.5 * (tr_max - tr_min)]),
-                                  pen=pg.mkPen({'color': '#40ff00', 'width': 1}))
+                self.plot.addItem(p_as_line)
+                self.plot.addItem(p_line)
 
                 # text for P and P-as arrivals
-                p_as_text = pg.TextItem("P_as", anchor=(0.5,1), color='#ff8000')
-                p_text = pg.TextItem("P", anchor=(0.5,1), color='#40ff00')
+                p_as_text = pg.TextItem("P_as", anchor=(1, 1), color='#ff8000')
+                p_text = pg.TextItem("P", anchor=(1, 1), color='#40ff00')
 
-                plot.addItem(p_as_text)
-                plot.addItem(p_text)
+                self.plot.addItem(p_as_text)
+                self.plot.addItem(p_text)
 
-                p_as_text.setPos(picked_p_time, tr_max + 0.5 * (tr_max - tr_min))
-                p_text.setPos(calc_p_time, tr_max + 0.5 * (tr_max - tr_min))
+            self._state["p_lines"].append(p_line)
+            self._state["p_as_lines"].append(p_as_line)
 
-
-            # plot.scene().sigMouseClicked.connect(self.on_graph_itemClicked)
+            self._state["p_text"].append(p_text)
+            self._state["p_as_text"].append(p_as_text)
 
         self._state["waveform_plots_min_time"] = min(starttimes)
         self._state["waveform_plots_max_time"] = max(endtimes)
@@ -490,113 +699,90 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
             plot.setXLink(self._state["waveform_plots"][0])
             plot.setYLink(self._state["waveform_plots"][0])
 
+        for _i, plot in enumerate(self._state["waveform_plots"]):
+            plot.hideAxis("bottom")
+            # connect with the method to catch when waveform plot is intercated with
+            plot.sigRangeChanged.connect(functools.partial(self.waveform_plot_interact, (self.plot, _i)))
+            self.waveform_plot_interact((plot, _i))
+
+        self._state["waveform_plots"][-1].showAxis("bottom")
         self.reset_view()
 
     def initialise_waveform_plot(self, plot_args):
 
         # display waveforms in waveform tab
         if plot_args[1] == "station":
-
             self.current_waveform_event = plot_args[0]['pick_event_id']
-            spatial_info_df = self.spatial_dict[plot_args[0]['pick_event_id']]
-            spatial_info_s = spatial_info_df.loc[spatial_info_df["station"] == plot_args[0]['sta']]
-
-            # the waveform will be stored in event directory under same directory that open_cat_filename
-            event_dir = os.path.join(os.path.dirname(self.cat_filename), plot_args[0]['pick_event_id'])
-
+            select_sta = [plot_args[0]['sta']]
             # plot one or all components for waveform
-            # just plot z for now
-            select_comp = ["BHZ", "BHE"]
+            # Launch the custom component selection dialog
+            sel_dlg = chanSelectionDialog(parent=self, chan_list=self.channel_codes)
+            if sel_dlg.exec_():
+                select_comp = sel_dlg.getSelected()
 
-            print(plot_args[0])
+        elif plot_args[1] == "event":
+            self.current_waveform_event = plot_args[0]['event_id']
+            # plot one or all components for all stations (or select stations) for a given event
+            # Launch the custom station/component selection dialog
+            sel_dlg = selectionDialog(parent=self, sta_list=self.stn_list, chan_list=self.channel_codes)
+            if sel_dlg.exec_():
+                select_sta, select_comp = sel_dlg.getSelected()
+
+        # the waveform will be stored in event directory under same directory that open_cat_filename
+        event_dir = os.path.join(os.path.dirname(self.cat_filename), self.current_waveform_event)
+
+        spatial_info_df = self.spatial_dict[self.current_waveform_event]
+
+        self.waveform_st = Stream()
+
+        # go through stations
+        for station in select_sta:
+            # get the spatial info for event and station
+            spatial_info_s = spatial_info_df.loc[spatial_info_df["station"] == station]
+
+            # get picks dataframe line
+            select_tr_pick = self.picks_df.loc[(self.picks_df['sta'] == station) &
+                                               (self.picks_df['pick_event_id'] == self.current_waveform_event)]
+
+            try:
+                # both in UTC Timestamp format (float)
+                picked_p_time = select_tr_pick['P_as_pick_time_UTC'].values[0]
+                calc_p_time = select_tr_pick['P_pick_time_UTC'].values[0]
+
+            except IndexError:
+                # no picks for station for event
+                picked_p_time = 0
+                calc_p_time = 0
 
             # get inventory object for station
-            stn_inv = self.inv.select(station = plot_args[0]['sta'])
-            print(stn_inv)
-
-            seed_filename = "{0}[.]{1}[.]{2}[.]({3})[.]MSEED".format(stn_inv[0].code, plot_args[0]['sta'], '', '|'.join(select_comp))
+            stn_inv = self.inv.select(station = station)
+            seed_filename = "{0}[.]{1}[.]{2}[.]({3})[.]MSEED".format(stn_inv[0].code, station, '', '|'.join(select_comp))
             seed_regex = re.compile(seed_filename)
-
-            print(seed_filename)
 
             # get list of mseed files that match the regular expression
             matching_seed_list = [f for f in os.listdir(event_dir) if re.match(seed_regex, f)]
-
-            print(matching_seed_list)
-
-            self.waveform_st = Stream()
 
             for matching_seed_file in matching_seed_list:
                 temp_st = read(os.path.join(event_dir, matching_seed_file))
 
                 # add in a non-standard stat for event id
-                temp_st[0].stats.event_id = plot_args[0]['pick_event_id']
+                temp_st[0].stats.event_id = self.current_waveform_event
 
                 # Write info to trace header
                 temp_st[0].stats.gcarc = spatial_info_s["gcarc"].values[0]
                 temp_st[0].stats.ep_dist = spatial_info_s["ep_dist"].values[0]
                 temp_st[0].stats.az = spatial_info_s["az"].values[0]
+                temp_st[0].stats.p_arr = calc_p_time
+                temp_st[0].stats.p_as_arr = picked_p_time
+
 
                 self.waveform_st += temp_st
 
-            # call the sort method selected method to update teh waveform plot
-            self.sort_method_selected(self.sort_drop_down_button, ('no_sort', 'no_sort'), False)
-
-        elif plot_args[1] == "event":
-
-            self.current_waveform_event = plot_args[0]['event_id']
-            # plot one or all components for all stations (or select stations) for a given event
-            # plot all stations and z component for now
-            select_comp = ["BHZ", "BHE"]
-            select_sta = ["SQ2A6", "SQ2A1", "SQ2C7", "SQ2B7"]
-
-            # the waveform will be stored in event directory under same directory that open_cat_filename
-            event_dir = os.path.join(os.path.dirname(self.cat_filename), plot_args[0]['event_id'])
-
-            selected_event_s = self.cat_df.loc[self.cat_df['event_id'] == plot_args[0]['event_id']]
-            spatial_info_df = self.spatial_dict[plot_args[0]['event_id']]
-
-
-            print(plot_args[0])
-
-            self.waveform_st = Stream()
-
-            # go through stations
-            for station in select_sta:
-                # get the spatial info for event and station
-                spatial_info_s = spatial_info_df.loc[spatial_info_df["station"] == station]
-
-                # get inventory object for station
-                stn_inv = self.inv.select(station = station)
-                print(stn_inv)
-
-                seed_filename = "{0}[.]{1}[.]{2}[.]({3})[.]MSEED".format(stn_inv[0].code, station, '', '|'.join(select_comp))
-                seed_regex = re.compile(seed_filename)
-
-                print(seed_filename)
-
-                # get list of mseed files that match the regular expression
-                matching_seed_list = [f for f in os.listdir(event_dir) if re.match(seed_regex, f)]
-
-                print(matching_seed_list)
-
-                for matching_seed_file in matching_seed_list:
-                    temp_st = read(os.path.join(event_dir, matching_seed_file))
-
-                    # add in a non-standard stat for event id
-                    temp_st[0].stats.event_id = plot_args[0]['event_id']
-
-                    # Write info to trace header
-                    temp_st[0].stats.gcarc = spatial_info_s["gcarc"].values[0]
-                    temp_st[0].stats.ep_dist = spatial_info_s["ep_dist"].values[0]
-                    temp_st[0].stats.az = spatial_info_s["az"].values[0]
-
-                    self.waveform_st += temp_st
-
-                # call the sort method selected method to update teh waveform plot
-                self.sort_method_selected(self.sort_drop_down_button, ('no_sort', 'no_sort'), False)
+        # call the sort method selected method to update teh waveform plot
+        self.sort_method_selected(self.sort_drop_down_button, ('no_sort', 'no_sort'), False)
 
         self.main_tabWidget.setCurrentIndex(1)
+        self.label.setText("Waveform Plot for EventID: " + str(self.current_waveform_event))
 
     def update_graph(self):
         # List of colors for individual scatter points based on the arr time residual
@@ -894,11 +1080,18 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
         self.table_view_highlight(focus_widget, row_index)
 
     def plot_inv(self):
+        self.channel_codes = []
         # plot the stations
         print(self.inv)
         for j, network in enumerate(self.inv):
             for i, station in enumerate(network):
                 if station.code in self.picks_df['sta'].unique():
+
+                    # get the channel names for dataset
+                    for chan in station:
+                        if not chan.code in self.channel_codes:
+                            self.channel_codes.append(chan.code)
+
                     # if a ref station plot yellow markers
                     if station.code in self.ref_stns:
                         # js_call = "addRefStation('{station_id}', {latitude}, {longitude});" \
@@ -935,10 +1128,12 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
         #     directory=os.path.expanduser("~"),
         #     filter="Pick Files (*.pick)")
 
-        pick_filenames = ['/g/data1/ha3/Passive/_ANU/7F(2013-2014)/processing/fiji_region/picks/4368979_P.pick',
-                          '/g/data1/ha3/Passive/_ANU/7F(2013-2014)/processing/fiji_region/picks/4368979_Pas.pick',
-                          '/g/data1/ha3/Passive/_ANU/7F(2013-2014)/processing/fiji_region/picks/4370655_P.pick',
-                          '/g/data1/ha3/Passive/_ANU/7F(2013-2014)/processing/fiji_region/picks/4370655_Pas.pick']
+        pick_filenames = ['/Users/ashbycooper/Desktop/Passive/_ANU/7F_2013_2014/processing/fiji_region/picks/4368866_P.pick',
+                          '/Users/ashbycooper/Desktop/Passive/_ANU/7F_2013_2014/processing/fiji_region/picks/4368866_Pas.pick',
+                          '/Users/ashbycooper/Desktop/Passive/_ANU/7F_2013_2014/processing/fiji_region/picks/4368979_P.pick',
+                          '/Users/ashbycooper/Desktop/Passive/_ANU/7F_2013_2014/processing/fiji_region/picks/4368979_Pas.pick',
+                          '/Users/ashbycooper/Desktop/Passive/_ANU/7F_2013_2014/processing/fiji_region/picks/4374959_P.pick',
+                          '/Users/ashbycooper/Desktop/Passive/_ANU/7F_2013_2014/processing/fiji_region/picks/4374959_Pas.pick']
 
         # open up dialog to set limits for p-picked - p-theoretical time residual
         res_dlg = ResidualSetLimit(parent=self)
@@ -1042,7 +1237,7 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
         # if not self.cat_filename:
         #     return
 
-        self.cat_filename = '/g/data1/ha3/Passive/_ANU/7F(2013-2014)/processing/fiji_region/Fiji_deep_events_for_7F.xml'
+        self.cat_filename = '/Users/ashbycooper/Desktop/Passive/_ANU/7F_2013_2014/processing/fiji_region/Fiji_deep_events_for_7F.xml'
 
         self.cat = read_events(self.cat_filename)
 
@@ -1076,10 +1271,13 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
         self.build_tables()
         self.plot_events()
 
+        self.sort_action_list = []
+
         def add_quakes_menu(menu_item, action_id):
             for event in self.cat_df['event_id']:
-                menu_item.addAction(event, functools.partial(
+                action = menu_item.addAction(event, functools.partial(
                     self.sort_method_selected, self.sort_drop_down_button, (event, action_id), True))
+                self.sort_action_list.append((event, action))
 
         # add the events and sort methods to sort menu dropdown
         self.sort_menu = QtGui.QMenu()
@@ -1148,7 +1346,7 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
         #     self.open_xml_button.setEnabled(True)
         #     return
 
-        self.ref_stn_filename = '/g/data1/ha3/Passive/_ANU/7F(2013-2014)/processing/fiji_region/9271874/ref_data/ref_metadata.xml'
+        self.ref_stn_filename = '/Users/ashbycooper/Desktop/Passive/_ANU/7F_2013_2014/processing/fiji_region/4368866/ref_data/ref_metadata.xml'
 
         self.ref_inv = read_inventory(self.ref_stn_filename)
 
@@ -1169,7 +1367,7 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
         # if not self.stn_filename:
         #     return
 
-        self.stn_filename = '/g/data1/ha3/Passive/_ANU/7F(2013-2014)/network_metadata/stnXML/7F(2013-2014).xml'
+        self.stn_filename = '/Users/ashbycooper/Desktop/Passive/_ANU/7F_2013_2014/network_metadata/stnXML/7F(2013-2014).xml'
 
         self.temp_inv = read_inventory(self.stn_filename)
 
@@ -1184,14 +1382,14 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
         # Now create distance to stations dict for each event
         unique_stations = self.picks_df['sta'].unique()
 
-        stn_list = unique_stations.tolist()
-        stn_list.sort()
+        self.stn_list = unique_stations.tolist()
+        self.stn_list.sort()
 
         self.spatial_dict = {}
 
         def calc_spatial_diff(x):
             temp_df = pd.DataFrame(data=None, columns=['station', 'gcarc', 'az', 'ep_dist'])
-            for _i, station in enumerate(stn_list):
+            for _i, station in enumerate(self.stn_list):
                 stn_lat = self.inv.select(station=station)[0][0].latitude
                 stn_lon = self.inv.select(station=station)[0][0].longitude
                 # first GCARC dist & az
@@ -1214,7 +1412,7 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
         # add the stations and to menu dropdown
         plot_stns_menu = QtGui.QMenu()
 
-        for _i, station in enumerate(stn_list):
+        for _i, station in enumerate(self.stn_list):
             plot_stns_menu.addAction(station, functools.partial(
                 self.plot_single_stn_selected, self.plot_single_stn_button, station))
 
