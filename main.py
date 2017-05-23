@@ -321,7 +321,10 @@ class ResidualSetLimit(QtGui.QDialog):
         self.resui.setupUi(self)
 
     def getValues(self):
-        return (float(self.resui.LowerLimitSpinBox.value()), float(self.resui.UpperLimitSpinBox.value()))
+        ll_sec = float(self.resui.LL_min.value()) * 60 + float(self.resui.LL_sec.value())
+        ul_sec = float(self.resui.UL_min.value()) * 60 + float(self.resui.UL_sec.value())
+
+        return (ll_sec, ul_sec)
 
 
 class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
@@ -773,7 +776,6 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
             matching_seed_list += [os.path.join(ref_dir, f) for f in os.listdir(ref_dir) if re.match(seed_regex, f)]
 
             for matching_seed_file in matching_seed_list:
-                print(matching_seed_file)
                 temp_st = read(matching_seed_file)
 
                 # add in a non-standard stat for event id
