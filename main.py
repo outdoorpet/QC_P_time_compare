@@ -1,8 +1,6 @@
 from PyQt4 import QtCore, QtGui, QtWebKit, QtNetwork, uic
 from obspy import read_inventory, read_events, UTCDateTime, Stream, read
 from obspy.geodetics.base import gps2dist_azimuth, kilometer2degrees
-from obspy.taup import TauPyModel
-from obspy.core.event import ResourceIdentifier
 import pandas as pd
 import functools
 import os
@@ -11,8 +9,9 @@ import numpy as np
 from DateAxisItem import DateAxisItem
 from query_input_yes_no import query_yes_no
 import sys
-import glob
 import re
+
+from MyMultiPlotWidget import MyMultiPlotWidget
 
 # load in Qt Designer UI files
 residual_set_limit_ui = "residual_set_limit.ui"
@@ -24,6 +23,7 @@ Ui_MainWindow, QtBaseClass = uic.loadUiType(qc_p_time_compare_ui)
 Ui_SelectDialog, QtBaseClass = uic.loadUiType(select_stacomp_dialog_ui)
 Ui_ChanSelectDialog, QtBaseClass = uic.loadUiType(select_comp_dialog_ui)
 Ui_ResDialog, QtBaseClass = uic.loadUiType(residual_set_limit_ui)
+
 
 class selectionDialog(QtGui.QDialog):
     '''
@@ -388,6 +388,11 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
         self.map_view_events.loadFinished.connect(self.onLoadFinished)
         self.map_view_events.linkClicked.connect(QtGui.QDesktopServices.openUrl)
 
+        self.waveform_graph = MyMultiPlotWidget()
+
+        self.placeholder_layout.takeAt(0)
+        self.placeholder_layout.addWidget(self.waveform_graph)
+
         # dictionary for waveform plot information
         self._state = {}
 
@@ -596,10 +601,10 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
         print('==================')
         print(temp_st)
 
-        self.waveform_graph.clear()
-        # self.waveform_graph.set
+        # plot_dlg = test_plot_dialog(parent=self, st=temp_st)
 
-        # self.waveform_graph.setMinimumPlotHeight(20)
+        self.waveform_graph.clear()
+        self.waveform_graph.setMinimumPlotHeight(100.0)
 
         # Get the filter settings.
         filter_settings = {}
@@ -690,6 +695,8 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
             self._state["p_text"].append(p_text)
             self._state["p_as_text"].append(p_as_text)
 
+        self.waveform_graph.setNumberPlots(len(temp_st))
+
         self._state["waveform_plots_min_time"] = min(starttimes)
         self._state["waveform_plots_max_time"] = max(endtimes)
         self._state["waveform_plots_min_value"] = min(min_values)
@@ -761,13 +768,9 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
             seed_filename = "{0}[.]{1}[.]{2}[.]({3})[.]MSEED".format(stn_inv[0].code, station, '', '|'.join(select_comp))
             seed_regex = re.compile(seed_filename)
 
-            print(seed_filename)
-
             # get list of mseed files that match the regular expression
             matching_seed_list = [os.path.join(event_dir, f) for f in os.listdir(event_dir) if re.match(seed_regex, f)]
             matching_seed_list += [os.path.join(ref_dir, f) for f in os.listdir(ref_dir) if re.match(seed_regex, f)]
-
-            print(matching_seed_list)
 
             for matching_seed_file in matching_seed_list:
                 print(matching_seed_file)
@@ -1135,7 +1138,6 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
             parent=self, caption="Choose File",
             directory=os.path.expanduser("~"),
             filter="Pick Files (*.pick)")
-
         if not pick_filenames:
             return
 
