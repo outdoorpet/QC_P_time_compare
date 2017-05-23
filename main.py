@@ -730,6 +730,7 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
 
         # the waveform will be stored in event directory under same directory that open_cat_filename
         event_dir = os.path.join(os.path.dirname(self.cat_filename), self.current_waveform_event)
+        ref_dir = os.path.join(event_dir, "ref_data")
 
         spatial_info_df = self.spatial_dict[self.current_waveform_event]
 
@@ -737,6 +738,7 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
 
         # go through stations
         for station in select_sta:
+
             # get the spatial info for event and station
             spatial_info_s = spatial_info_df.loc[spatial_info_df["station"] == station]
 
@@ -759,11 +761,17 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
             seed_filename = "{0}[.]{1}[.]{2}[.]({3})[.]MSEED".format(stn_inv[0].code, station, '', '|'.join(select_comp))
             seed_regex = re.compile(seed_filename)
 
+            print(seed_filename)
+
             # get list of mseed files that match the regular expression
-            matching_seed_list = [f for f in os.listdir(event_dir) if re.match(seed_regex, f)]
+            matching_seed_list = [os.path.join(event_dir, f) for f in os.listdir(event_dir) if re.match(seed_regex, f)]
+            matching_seed_list += [os.path.join(ref_dir, f) for f in os.listdir(ref_dir) if re.match(seed_regex, f)]
+
+            print(matching_seed_list)
 
             for matching_seed_file in matching_seed_list:
-                temp_st = read(os.path.join(event_dir, matching_seed_file))
+                print(matching_seed_file)
+                temp_st = read(matching_seed_file)
 
                 # add in a non-standard stat for event id
                 temp_st[0].stats.event_id = self.current_waveform_event
@@ -1123,17 +1131,13 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
             self.map_view_events.page().mainFrame().evaluateJavaScript(js_call)
 
     def open_pick_file(self):
-        # pick_filenames = QtGui.QFileDialog.getOpenFileNames(
-        #     parent=self, caption="Choose File",
-        #     directory=os.path.expanduser("~"),
-        #     filter="Pick Files (*.pick)")
+        pick_filenames = QtGui.QFileDialog.getOpenFileNames(
+            parent=self, caption="Choose File",
+            directory=os.path.expanduser("~"),
+            filter="Pick Files (*.pick)")
 
-        pick_filenames = ['/Users/ashbycooper/Desktop/Passive/_ANU/7F_2013_2014/processing/fiji_region/picks/4368866_P.pick',
-                          '/Users/ashbycooper/Desktop/Passive/_ANU/7F_2013_2014/processing/fiji_region/picks/4368866_Pas.pick',
-                          '/Users/ashbycooper/Desktop/Passive/_ANU/7F_2013_2014/processing/fiji_region/picks/4368979_P.pick',
-                          '/Users/ashbycooper/Desktop/Passive/_ANU/7F_2013_2014/processing/fiji_region/picks/4368979_Pas.pick',
-                          '/Users/ashbycooper/Desktop/Passive/_ANU/7F_2013_2014/processing/fiji_region/picks/4374959_P.pick',
-                          '/Users/ashbycooper/Desktop/Passive/_ANU/7F_2013_2014/processing/fiji_region/picks/4374959_Pas.pick']
+        if not pick_filenames:
+            return
 
         # open up dialog to set limits for p-picked - p-theoretical time residual
         res_dlg = ResidualSetLimit(parent=self)
@@ -1230,14 +1234,12 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
         self.sort_method_selected(self.sort_drop_down_button, ('no_sort', 'no_sort'), False)
 
     def open_cat_file(self):
-        # self.cat_filename = str(QtGui.QFileDialog.getOpenFileName(
-        #     parent=self, caption="Choose File",
-        #     directory=os.path.expanduser("~"),
-        #     filter="XML Files (*.xml)"))
-        # if not self.cat_filename:
-        #     return
-
-        self.cat_filename = '/Users/ashbycooper/Desktop/Passive/_ANU/7F_2013_2014/processing/fiji_region/Fiji_deep_events_for_7F.xml'
+        self.cat_filename = str(QtGui.QFileDialog.getOpenFileName(
+            parent=self, caption="Choose File",
+            directory=os.path.expanduser("~"),
+            filter="XML Files (*.xml)"))
+        if not self.cat_filename:
+            return
 
         self.cat = read_events(self.cat_filename)
 
@@ -1338,15 +1340,13 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
         self.open_ref_xml_button.setEnabled(True)
 
     def open_ref_xml_file(self):
-        # self.ref_stn_filename = str(QtGui.QFileDialog.getOpenFileName(
-        #     parent=self, caption="Choose Reference StationXML file",
-        #     directory=os.path.expanduser("~"),
-        #     filter="XML Files (*.xml)"))
-        # if not self.ref_stn_filename:
-        #     self.open_xml_button.setEnabled(True)
-        #     return
-
-        self.ref_stn_filename = '/Users/ashbycooper/Desktop/Passive/_ANU/7F_2013_2014/processing/fiji_region/4368866/ref_data/ref_metadata.xml'
+        self.ref_stn_filename = str(QtGui.QFileDialog.getOpenFileName(
+            parent=self, caption="Choose Reference StationXML file",
+            directory=os.path.expanduser("~"),
+            filter="XML Files (*.xml)"))
+        if not self.ref_stn_filename:
+            self.open_xml_button.setEnabled(True)
+            return
 
         self.ref_inv = read_inventory(self.ref_stn_filename)
 
@@ -1360,14 +1360,12 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
         self.gather_events_checkbox.setEnabled(True)
 
     def open_xml_file(self):
-        # self.stn_filename = str(QtGui.QFileDialog.getOpenFileName(
-        #     parent=self, caption="Choose Temporary Deployment StationXML File",
-        #     directory=os.path.expanduser("~"),
-        #     filter="XML Files (*.xml)"))
-        # if not self.stn_filename:
-        #     return
-
-        self.stn_filename = '/Users/ashbycooper/Desktop/Passive/_ANU/7F_2013_2014/network_metadata/stnXML/7F(2013-2014).xml'
+        self.stn_filename = str(QtGui.QFileDialog.getOpenFileName(
+            parent=self, caption="Choose Temporary Deployment StationXML File",
+            directory=os.path.expanduser("~"),
+            filter="XML Files (*.xml)"))
+        if not self.stn_filename:
+            return
 
         self.temp_inv = read_inventory(self.stn_filename)
 
