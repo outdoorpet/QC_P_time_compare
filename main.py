@@ -1013,7 +1013,7 @@ class MainWindow(QtGui.QMainWindow, Ui_MainWindow):
         # Lookup Dictionary for table views
         self.tbl_view_dict = {"cat": self.tbld.cat_event_table_view, "picks": self.tbld.pick_table_view}
 
-        # Create a new table_accessor dictionary for this class
+        # Create a new table_accefssor dictionary for this class
         self.table_accessor = {self.tbld.cat_event_table_view: [dropped_cat_df, range(0, len(dropped_cat_df))],
                                self.tbld.pick_table_view: [dropped_picks_df, range(0, len(dropped_picks_df))]}
 
